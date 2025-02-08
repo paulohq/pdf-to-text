@@ -5,6 +5,7 @@
 **/.npmrc
 **/*.jasper
 **/*.pdf
+**/*.xml
 **/*.iml
 **/.settings/
 **/target/
