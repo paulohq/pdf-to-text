@@ -13,6 +13,7 @@
 **/node_modules/
 **/resources/components
 **/pdf/
+**/.venv/
 *.log
 nbactions.xml
 nb-configuration.xml

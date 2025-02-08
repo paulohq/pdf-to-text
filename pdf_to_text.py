@@ -25,6 +25,7 @@ def load_pdf(dir):
 
                 text = page.extract_text()
                 print(text)
+                print("##########################################")
 
 #def extract():
 
