@@ -11,6 +11,8 @@ import re
 # Fields that need to be found in file.
 fields = ['X1', 'X2', 'Nome/Razão Social', 'CNPJ/CPF', 'Data Emissão', 'Valor Total da Nota', 'Inscrição Estadual do Substituto', 'Alíquota']
 
+dict_fields = {'X1': '', 'X2': '', 'Nome/Razão Social': '', 'CNPJ/CPF': '', 'Data Emissão': '', 'Valor Total da Nota': 0, 'Inscrição Estadual do Substituto': 0, 'Alíquota': 0}
+
 def load_pdf(dir):
     # Reads files from the directory.
     files = os.listdir(dir)
@@ -31,34 +33,35 @@ def load_pdf(dir):
                 text = page.extract_text()
 
                 # Iterate over fields.
-                for field in fields:
+                for key in dict_fields:
                     # find the first position of field in file.
-                    index_start = text.find(field)
+                    index_start = text.find(key)
 
                     if index_start != -1:
                         #  Add the length of the field found above.
-                        index_start = index_start + len(field)
+                        index_start = index_start + len(key)
                         # Find the position of the next "New Line" after the field (to find the final position of the field's value).
                         # Add 1 because some fields may have a "New Line" at the beginning.
                         index_end = text.find('\n', index_start + 1)
 
                         # if it's the field "X1" then set value = SAIDA
-                        if field == 'X1':
-                            value = "SAIDA"
+                        if key == 'X1':
+                            dict_fields[key] = "SAIDA"
                         # else if it's the field "X2" then set value = ENTRADA
-                        elif field == 'X2':
-                            value = "ENTRADA"
+                        elif key == 'X2':
+                            dict_fields[key] = "ENTRADA"
+                        # else if it's the field "Valtor Total da Nota" then remove spaces.
+                        elif key == 'Valor Total da Nota':
+                            value = text[index_start:index_end].replace("\n", "")
+                            dict_fields[key] = re.sub(r'[A-Z]|[a-z]|\s', "", value)
                         # else set value
                         else:
-                            value = text[index_start:index_end].replace("\n", "")
-
-                        # if it's the field "Valtor Total da Nota" then remove spaces.
-                        if field == 'Valor Total da Nota':
-                            value = re.sub(r'[A-Z]|[a-z]', "", value)
-
-                        print(field + ': ' + value.strip())
+                            dict_fields[key] = text[index_start:index_end].replace("\n", "")
 
 
+                        print(key + ': ' + dict_fields[key])
+
+                print(dict_fields)
                 print("##########################################")
 
 
