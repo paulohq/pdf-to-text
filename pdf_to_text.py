@@ -20,6 +20,7 @@ def load_pdf(dir):
     # Reads files from the directory.
     files = os.listdir(dir)
 
+    cont = 0
     # iterates over the files.
     for file in files:
         # Open the file for reading.
@@ -61,12 +62,24 @@ def load_pdf(dir):
                         else:
                             dict_fields[key] = text[index_start:index_end].replace("\n", "")
 
+                        #print(key + ': ' + dict_fields[key])
+                cont += 1
+                print('Contador: ' + str(cont))
+                print('Data Emissão: ' + dict_fields['Data Emissão'])
+                if dict_fields['X1'] == 'SAIDA':
+                    conta = '2.23.004'
+                elif dict_fields['X2'] == 'VENDA':
+                    conta = '1.15.001'
+                elif dict_fields['X2'] == 'COMPRA':
+                    conta = '2.21.001'
 
-                        print(key + ': ' + dict_fields[key])
-
-                print(dict_fields)
-                insert_update_AR('xml/dec-ar-2024-formatted.xml')
-                print("##########################################")
+                print('Conta: ' + conta)
+                historico = "COMPRA NA EMPRESA " + dict_fields['Nome/Razão Social'] + " CNPJ: " + dict_fields['CNPJ/CPF'] + " NF: " + str(dict_fields['Inscrição Estadual do Substituto']) + " SE: " + str(dict_fields['Alíquota'])
+                print('Histórico: ' + historico)
+                print('Valor: ' + dict_fields['Valor Total da Nota'])
+                #print(dict_fields)
+                #insert_update_AR('xml/DEC-AR-2024-copy.xml')
+                print("##############################################################################################################")
 
 def insert_update_AR(file):
     tree = ET.parse(file)
@@ -112,6 +125,7 @@ def insert_update_AR(file):
                 vl = f'{vl:,.2f}'
                 # substitui "." por "," e grava no campo saldo do item.
                 el.set('despesas', vl.replace('.','*').replace(',','.').replace('*', ','))
+
             # Senão se for registro de VENDA então atualiza o valor do campo receitas.
             elif dict_fields['X2'] == 'VENDA':
                 vl = float(el.get('receitas').replace('.','').replace(',','.')) + float(str(dict_fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
@@ -119,6 +133,7 @@ def insert_update_AR(file):
                 vl = f'{vl:,.2f}'
                 # substitui "." por "," e grava no campo saldo do item.
                 el.set('receitas', vl.replace('.','*').replace(',','.').replace('*', ','))
+            break
 
     # itera sobre o terceiro elemento abaixo do nó root (escrituracao).
     for child in root[2]:
@@ -126,14 +141,41 @@ def insert_update_AR(file):
             # se o atributo nomeMes (que é numérico) do nó for igual ao mês do registro que será adicionado.
             if child.get('nomeMes').rjust(2, '0') == mes:
                 # soma valor ao saldo do item.
-                vl = float(child.get('saldo').replace('.','').replace(',','.')) + (float(str(dict_fields['Valor Total da Nota']).replace('.',',').replace(',','.')) * -1)
+                #vl = float(child.get('saldo').replace('.','').replace(',','.')) + (float(str(dict_fields['Valor Total da Nota']).replace('.',',').replace(',','.')) * (-1 if (dict_fields['X1'] == 'SAIDA') or (dict_fields['X1'] == 'COMPRA') else 1))
                 # converte para decimal com dois dígitos.
-                vl = f'{vl:,.2f}'
+                #vl = f'{vl:,.2f}'
                 # substitui "." por "," e grava no campo saldo do item.
-                child.set('saldo', vl.replace('.','*').replace(',','.').replace('*', ','))
+                #vl = vl.replace('.','*').replace(',','.').replace('*', ',')
+                #child.set('saldo', vl)
+                # Se for registro de SAIDA ou COMPRA então atualiza o valor do campo despesas.
+                if (dict_fields['X1'] == 'SAIDA') or (dict_fields['X1'] == 'COMPRA'):
+                    vl = float(child.get('totalDespesaCusteioInvestimentos').replace('.','').replace(',','.')) + float(str(dict_fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
+                    # converte para decimal com dois dígitos.
+                    vl = f'{vl:,.2f}'
+                    # substitui "." por "," e grava no campo saldo do item.
+                    vl = vl.replace('.','*').replace(',','.').replace('*', ',')
+                    child.set('totalDespesaCusteioInvestimentos', vl)
+                    child.set('totalDespesaCusteioInvestimentosPendencia',vl)
+                # Senão se for registro de VENDA então atualiza o valor do campo receitas.
+                elif dict_fields['X2'] == 'VENDA':
+                    vl = float(child.get('totalReceitaDaAtividadeRural').replace('.','').replace(',','.')) + float(str(dict_fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
+                    # converte para decimal com dois dígitos.
+                    vl = f'{vl:,.2f}'
+                    # substitui "." por "," e grava no campo saldo do item.
+                    vl = vl.replace('.','*').replace(',','.').replace('*', ',')
+                    child.set('totalReceitaDaAtividadeRural', vl.replace('-', ''))
+                    child.set('totalReceitaDaAtividadeRuralPendencia',vl.replace('-', ''))
+
+                # atualiza saldo
+                saldo = float(child.get('totalReceitaDaAtividadeRural').replace('.','').replace(',','.')) - float(child.get('totalDespesaCusteioInvestimentos').replace('.','').replace(',','.'))
+                # converte para decimal com dois dígitos.
+                saldo = f'{saldo:,.2f}'
+                # substitui "." por "," e grava no campo saldo do item.
+                saldo = saldo.replace('.','*').replace(',','.').replace('*', ',')
+                child.set('saldo', saldo)
 
                 # adiciona nó item no mês.
-                element = ET.SubElement(root[2][mes], 'item')
+                element = ET.SubElement(root[2][int(mes)], 'item')
                 # adiciona as tags no elemento adicionado acima.
                 element.set('classificacaoConta', '')
                 element.set('codTipoContaSelecao', conta)
@@ -142,8 +184,9 @@ def insert_update_AR(file):
                 element.set('nomeAbaConta', meses[mes][0:3].upper())
                 element.set('pais', "105")
                 element.set('valor', dict_fields['Valor Total da Nota'])
+                break
 
-    tree.write('xml/AR-output.xml')
+    tree.write('xml/DEC-AR-2024-copy.xml')
 
 def main(dir):
     load_pdf(dir)
