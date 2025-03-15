@@ -63,23 +63,23 @@ def load_pdf(dir):
                             dict_fields[key] = text[index_start:index_end].replace("\n", "")
 
                         #print(key + ': ' + dict_fields[key])
-                cont += 1
-                print('Contador: ' + str(cont))
-                print('Data Emissão: ' + dict_fields['Data Emissão'])
-                if dict_fields['X1'] == 'SAIDA':
-                    conta = '2.23.004'
-                elif dict_fields['X2'] == 'VENDA':
-                    conta = '1.15.001'
-                elif dict_fields['X2'] == 'COMPRA':
-                    conta = '2.21.001'
+        cont += 1
+        print('Contador: ' + str(cont))
+        print('Data Emissão: ' + dict_fields['Data Emissão'])
+        if dict_fields['X1'] == 'SAIDA':
+            conta = '2.23.004'
+        elif dict_fields['X2'] == 'VENDA':
+            conta = '1.15.001'
+        elif dict_fields['X2'] == 'COMPRA':
+            conta = '2.21.001'
 
-                print('Conta: ' + conta)
-                historico = "COMPRA NA EMPRESA " + dict_fields['Nome/Razão Social'] + " CNPJ: " + dict_fields['CNPJ/CPF'] + " NF: " + str(dict_fields['Inscrição Estadual do Substituto']) + " SE: " + str(dict_fields['Alíquota'])
-                print('Histórico: ' + historico)
-                print('Valor: ' + dict_fields['Valor Total da Nota'])
-                #print(dict_fields)
-                #insert_update_AR('xml/DEC-AR-2024-copy.xml')
-                print("##############################################################################################################")
+        print('Conta: ' + conta)
+        historico = "COMPRA NA EMPRESA " + dict_fields['Nome/Razão Social'] + " CNPJ: " + dict_fields['CNPJ/CPF'] + " NF: " + str(dict_fields['Inscrição Estadual do Substituto']) + " SE: " + str(dict_fields['Alíquota'])
+        print('Histórico: ' + historico)
+        print('Valor: ' + dict_fields['Valor Total da Nota'])
+        #print(dict_fields)
+        #insert_update_AR('xml/DEC-AR-2024-copy.xml')
+        print("##############################################################################################################")
 
 def insert_update_AR(file):
     tree = ET.parse(file)
