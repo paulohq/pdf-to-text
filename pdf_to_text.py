@@ -10,9 +10,7 @@ from lxml import etree as ET
 # listdir() : lista os arquivos presentes no diretório
 
 # Fields that need to be found in file.
-#fields = ['X1', 'X2', 'Nome/Razão Social', 'CNPJ/CPF', 'Data Emissão', 'Valor Total da Nota', 'Inscrição Estadual do Substituto', 'Alíquota']
-
-dict_fields = {'X1': '', 'X2': '', 'Nome/Razão Social': '', 'CNPJ/CPF': '', 'Data Emissão': '', 'Valor Total da Nota': 0, 'Inscrição Estadual do Substituto': 0, 'Alíquota': 0}
+fields = {'X1': '', 'X2': '', 'ENTRADAX': '', 'Nome/Razão Social': '', 'CNPJ/CPF': '', 'DESTINATÁRIO\nNome/Razão Social': '', 'Data Emissão': '', 'Valor Total da Nota': 0, 'Inscrição Estadual do Substituto': 0, 'Alíquota': 0, 'GADO BOVINO': ''}
 
 meses = {'01': 'Janeiro', '02': 'Fevereiro', '03': 'Março', '04': 'Abril', '05': 'Maio', '06': 'Junho', '07': 'Julho', '08': 'Agosto', '09': 'Setembro', '10': 'Outubro', '11': 'Novembro', '12': 'Dezembro'}
 
@@ -23,92 +21,110 @@ def load_pdf(dir):
     cont = 0
     # iterates over the files.
     for file in files:
-        # Open the file for reading.
-        with open(dir + '/' + file, 'rb') as pdf_file:
-            # Reads pdf file.
-            pdf_read = PdfReader(pdf_file)
-            # Get number of pages from file.
-            num_pages = len(pdf_read.pages)
+        if file[-3:].lower() == 'pdf':
+            # Open the file for reading.
+            with open(dir + '/' + file, 'rb') as pdf_file:
+                print('Arquivo: ' + file)
+                # Reads pdf file.
+                pdf_read = PdfReader(pdf_file)
+                # Get number of pages from file.
+                num_pages = len(pdf_read.pages)
 
-            # iterate over pages.
-            for page_num in range(num_pages):
-                page = pdf_read.pages[page_num]
+                # iterate over pages.
+                for page_num in range(num_pages):
+                    page = pdf_read.pages[page_num]
 
-                text = page.extract_text()
+                    text = page.extract_text()
 
-                # Iterate over fields.
-                for key in dict_fields:
-                    # find the first position of field in file.
-                    index_start = text.find(key)
+                    # Iterate over fields.
+                    for key in fields:
+                        # find the first position of field in file.
+                        index_start = text.find(key)
 
-                    if index_start != -1:
-                        #  Add the length of the field found above.
-                        index_start = index_start + len(key)
-                        # Find the position of the next "New Line" after the field (to find the final position of the field's value).
-                        # Add 1 because some fields may have a "New Line" at the beginning.
-                        index_end = text.find('\n', index_start + 1)
+                        if index_start != -1:
+                            #  Add the length of the field found above.
+                            index_start = index_start + len(key)
+                            # Find the position of the next "New Line" after the field (to find the final position of the field's value).
+                            # Add 1 because some fields may have a "New Line" at the beginning.
+                            index_end = text.find('\n', index_start + 1)
 
-                        # if it's the field "X1" then set value = SAIDA
-                        if key == 'X1':
-                            dict_fields[key] = "SAIDA"
-                        # else if it's the field "X2" then set value = ENTRADA
-                        elif key == 'X2':
-                            dict_fields[key] = "ENTRADA"
-                        # else if it's the field "Valtor Total da Nota" then remove spaces.
-                        elif key == 'Valor Total da Nota':
-                            value = text[index_start:index_end].replace("\n", "")
-                            dict_fields[key] = re.sub(r'[A-Z]|[a-z]|\s', "", value)
-                        # else set value
-                        else:
-                            dict_fields[key] = text[index_start:index_end].replace("\n", "")
+                            # if it's the field "X1" then set value = SAIDA
+                            if key == 'X1':
+                                fields[key] = "SAIDA"
+                            # else if it's the field "X2" then set value = ENTRADA
+                            elif key == 'X2':
+                                fields[key] = "ENTRADA"
+                            elif key == 'ENTRADAX':
+                                fields[key] = 'ENTRADA'
+                            # else if it's the field "Valtor Total da Nota" then remove spaces.
+                            elif key == 'Valor Total da Nota':
+                                value = text[index_start:index_end].replace("\n", "")
+                                fields[key] = re.sub(r'[A-Z]|[a-z]|\s', "", value)
+                            elif key == 'GADO BOVINO':
+                                fields[key] = 'COMPRA DE GADO DE '
+                            # else set value
+                            else:
+                                fields[key] = text[index_start:index_end].replace("\n", "")
 
-                        #print(key + ': ' + dict_fields[key])
-        cont += 1
-        print('Contador: ' + str(cont))
-        print('Data Emissão: ' + dict_fields['Data Emissão'])
-        if dict_fields['X1'] == 'SAIDA':
-            conta = '2.23.004'
-        elif dict_fields['X2'] == 'VENDA':
-            conta = '1.15.001'
-        elif dict_fields['X2'] == 'COMPRA':
-            conta = '2.21.001'
+                            #print(key + ': ' + fields[key])
 
-        print('Conta: ' + conta)
-        historico = "COMPRA NA EMPRESA " + dict_fields['Nome/Razão Social'] + " CNPJ: " + dict_fields['CNPJ/CPF'] + " NF: " + str(dict_fields['Inscrição Estadual do Substituto']) + " SE: " + str(dict_fields['Alíquota'])
-        print('Histórico: ' + historico)
-        print('Valor: ' + dict_fields['Valor Total da Nota'])
-        #print(dict_fields)
-        #insert_update_AR('xml/DEC-AR-2024-copy.xml')
-        print("##############################################################################################################")
+            cont += 1
+            print('Contador: ' + str(cont))
+            print('Data Emissão: ' + fields['Data Emissão'])
+            historico = ''
+            if fields['X1'] == 'SAIDA':
+                # Nota de saída de terceiro para o destinatário PAULO HENRIQUE DA SILVA.
+                if fields['GADO BOVINO'] == 'COMPRA DE GADO DE ':
+                    conta = '2.21.001'
+                    historico = 'COMPRA DE GADO DE '
+                else:
+                    conta = '2.23.004'
+                    historico = "COMPRA NA EMPRESA "
+            elif fields['X2'] == 'ENTRADA' or fields['ENTRADAX'] == 'ENTRADA':
+                conta = '1.15.001'
+                historico = "VENDA DE GADO PARA "
+            elif fields['X2'] == 'COMPRA':
+                conta = '2.21.001'
+                historico = 'COMPRA DE GADO DE '
+
+            print('Conta: ' + conta)
+            historico = historico + fields['Nome/Razão Social'] + " CNPJ: " + fields['CNPJ/CPF'] + " NF: " + str(fields['Inscrição Estadual do Substituto']) + " SE: " + str(fields['Alíquota'])
+            print('Histórico: ' + historico)
+            print('Valor: ' + fields['Valor Total da Nota'])
+            #print(fields)
+            #insert_update_AR('xml/DEC-AR-2024-copy.xml')
+            print("##############################################################################################################")
+            for key in fields:
+                fields[key] = ''
 
 def insert_update_AR(file):
     tree = ET.parse(file)
     root = tree.getroot()
     conta = ''
 
-    mes = dict_fields['Data Emissão'][3:5]
+    mes = fields['Data Emissão'][3:5]
     #DA CIA BRASILEIRA DE DISTRIBUICAO CNPJ 47.508.411/0786-94 NF 604798 SE 302
-    historico = "COMPRA DA EMPRESA " + dict_fields['Nome/Razão Social'] + " CNPJ: " + dict_fields['CNPJ/CPF'] + " NF: " + str(dict_fields['Inscrição Estadual do Substituto']) + " SE: " + str(dict_fields['Alíquota'])
-    if dict_fields['X1'] == 'SAIDA':
+    historico = "COMPRA DA EMPRESA " + fields['Nome/Razão Social'] + " CNPJ: " + fields['CNPJ/CPF'] + " NF: " + str(fields['Inscrição Estadual do Substituto']) + " SE: " + str(fields['Alíquota'])
+    if fields['X1'] == 'SAIDA':
         conta = '2.23.004'
-    elif dict_fields['X2'] == 'VENDA':
+    elif fields['X2'] == 'VENDA':
         conta = '1.15.001'
-    elif dict_fields['X2'] == 'COMPRA':
+    elif fields['X2'] == 'COMPRA':
         conta = '2.21.001'
 
     # encontra o nó consolidação para atualizar o totalDespesas ou totalReceitas.
     for el in root.iter('consolidacao'):
         # Se for registro de SAIDA ou COMPRA então atualiza o valor do campo totalDespesas.
-        if (dict_fields['X1'] == 'SAIDA') or (dict_fields['X1'] == 'COMPRA'):
-            vl = float(el.get('totalDespesas').replace('.','').replace(',','.')) + float(str(dict_fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
+        if (fields['X1'] == 'SAIDA') or (fields['X1'] == 'COMPRA'):
+            vl = float(el.get('totalDespesas').replace('.','').replace(',','.')) + float(str(fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
             # converte para decimal com dois dígitos.
             vl = f'{vl:,.2f}'
             # substitui "." por "," e grava no campo saldo do item.
             el.set('totalDespesas', vl.replace('.','*').replace(',','.').replace('*', ','))
         # Senão se for registro de VENDA então atualiza o valor do campo totalReceitas.
-        elif dict_fields['X2'] == 'VENDA':
-            #vl = float(el.attrib.values()[4].replace(',','.')) + float(str(dict_fields['Valor Total da Nota']).replace(',','.'))
-            vl = float(el.get('totalReceitas').replace('.','').replace(',','.')) + float(str(dict_fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
+        elif fields['X2'] == 'VENDA':
+            #vl = float(el.attrib.values()[4].replace(',','.')) + float(str(fields['Valor Total da Nota']).replace(',','.'))
+            vl = float(el.get('totalReceitas').replace('.','').replace(',','.')) + float(str(fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
             # converte para decimal com dois dígitos.
             vl = f'{vl:,.2f}'
             # substitui "." por "," e grava no campo saldo do item.
@@ -119,16 +135,16 @@ def insert_update_AR(file):
         # Se a tag do nó for igual ao mês do registro que será alterado.
         if el.get('mes') == meses[mes]:
             # Se for registro de SAIDA ou COMPRA então atualiza o valor do campo despesas.
-            if (dict_fields['X1'] == 'SAIDA') or (dict_fields['X1'] == 'COMPRA'):
-                vl = float(el.get('despesas').replace('.','').replace(',','.')) + float(str(dict_fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
+            if (fields['X1'] == 'SAIDA') or (fields['X1'] == 'COMPRA'):
+                vl = float(el.get('despesas').replace('.','').replace(',','.')) + float(str(fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
                 # converte para decimal com dois dígitos.
                 vl = f'{vl:,.2f}'
                 # substitui "." por "," e grava no campo saldo do item.
                 el.set('despesas', vl.replace('.','*').replace(',','.').replace('*', ','))
 
             # Senão se for registro de VENDA então atualiza o valor do campo receitas.
-            elif dict_fields['X2'] == 'VENDA':
-                vl = float(el.get('receitas').replace('.','').replace(',','.')) + float(str(dict_fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
+            elif fields['X2'] == 'VENDA':
+                vl = float(el.get('receitas').replace('.','').replace(',','.')) + float(str(fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
                 # converte para decimal com dois dígitos.
                 vl = f'{vl:,.2f}'
                 # substitui "." por "," e grava no campo saldo do item.
@@ -141,15 +157,15 @@ def insert_update_AR(file):
             # se o atributo nomeMes (que é numérico) do nó for igual ao mês do registro que será adicionado.
             if child.get('nomeMes').rjust(2, '0') == mes:
                 # soma valor ao saldo do item.
-                #vl = float(child.get('saldo').replace('.','').replace(',','.')) + (float(str(dict_fields['Valor Total da Nota']).replace('.',',').replace(',','.')) * (-1 if (dict_fields['X1'] == 'SAIDA') or (dict_fields['X1'] == 'COMPRA') else 1))
+                #vl = float(child.get('saldo').replace('.','').replace(',','.')) + (float(str(fields['Valor Total da Nota']).replace('.',',').replace(',','.')) * (-1 if (fields['X1'] == 'SAIDA') or (fields['X1'] == 'COMPRA') else 1))
                 # converte para decimal com dois dígitos.
                 #vl = f'{vl:,.2f}'
                 # substitui "." por "," e grava no campo saldo do item.
                 #vl = vl.replace('.','*').replace(',','.').replace('*', ',')
                 #child.set('saldo', vl)
                 # Se for registro de SAIDA ou COMPRA então atualiza o valor do campo despesas.
-                if (dict_fields['X1'] == 'SAIDA') or (dict_fields['X1'] == 'COMPRA'):
-                    vl = float(child.get('totalDespesaCusteioInvestimentos').replace('.','').replace(',','.')) + float(str(dict_fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
+                if (fields['X1'] == 'SAIDA') or (fields['X1'] == 'COMPRA'):
+                    vl = float(child.get('totalDespesaCusteioInvestimentos').replace('.','').replace(',','.')) + float(str(fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
                     # converte para decimal com dois dígitos.
                     vl = f'{vl:,.2f}'
                     # substitui "." por "," e grava no campo saldo do item.
@@ -157,8 +173,8 @@ def insert_update_AR(file):
                     child.set('totalDespesaCusteioInvestimentos', vl)
                     child.set('totalDespesaCusteioInvestimentosPendencia',vl)
                 # Senão se for registro de VENDA então atualiza o valor do campo receitas.
-                elif dict_fields['X2'] == 'VENDA':
-                    vl = float(child.get('totalReceitaDaAtividadeRural').replace('.','').replace(',','.')) + float(str(dict_fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
+                elif fields['X2'] == 'VENDA':
+                    vl = float(child.get('totalReceitaDaAtividadeRural').replace('.','').replace(',','.')) + float(str(fields['Valor Total da Nota']).replace('.',',').replace(',','.'))
                     # converte para decimal com dois dígitos.
                     vl = f'{vl:,.2f}'
                     # substitui "." por "," e grava no campo saldo do item.
@@ -179,11 +195,11 @@ def insert_update_AR(file):
                 # adiciona as tags no elemento adicionado acima.
                 element.set('classificacaoConta', '')
                 element.set('codTipoContaSelecao', conta)
-                element.set('data', dict_fields['Data Emissão'])
+                element.set('data', fields['Data Emissão'])
                 element.set('historico', historico)
                 element.set('nomeAbaConta', meses[mes][0:3].upper())
                 element.set('pais', "105")
-                element.set('valor', dict_fields['Valor Total da Nota'])
+                element.set('valor', fields['Valor Total da Nota'])
                 break
 
     tree.write('xml/DEC-AR-2024-copy.xml')
